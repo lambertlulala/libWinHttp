@@ -4,6 +4,11 @@ WinHttpHandle::WinHttpHandle() :m_handle(nullptr)
 {
 }
 
+WinHttpHandle::WinHttpHandle(WinHttpHandle&& rhs) noexcept
+{
+    m_handle = rhs.m_handle;
+    rhs.m_handle = nullptr;
+}
 WinHttpHandle::~WinHttpHandle()
 {
     Close();
@@ -41,7 +46,7 @@ HRESULT WinHttpHandle::SetOption(DWORD option, const void* value, DWORD length)
     return S_OK;
 }
 
-HRESULT WinHttpHandle::QueryOption(DWORD option, void* value, DWORD& length) const
+HRESULT WinHttpHandle::QueryOption(DWORD option, void* value, DWORD & length) const
 {
     if (!::WinHttpQueryOption(m_handle, option, value, &length))
     {

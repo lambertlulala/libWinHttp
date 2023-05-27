@@ -44,9 +44,7 @@ public:
         m_result = S_OK == result;
     }
 
-    virtual HRESULT OnCallback(DWORD code,
-        const void* info,
-        DWORD length)
+    virtual HRESULT OnCallback(DWORD code, const void* info, DWORD length)
     {
         switch (code)
         {

@@ -7,6 +7,10 @@ class WinHttpHandle
 {
 public:
     WinHttpHandle();
+    WinHttpHandle(const WinHttpHandle& rhs) = delete;
+    WinHttpHandle(WinHttpHandle&& rhs) noexcept;
+    void operator= (WinHttpHandle& rhs) = delete;
+
     virtual ~WinHttpHandle();
 
     bool Attach(HINTERNET handle);
