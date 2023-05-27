@@ -22,7 +22,7 @@ bool WinHttpHandle::Attach(HINTERNET handle)
 
 HINTERNET WinHttpHandle::Detach()
 {
-    HANDLE handle = m_handle;
+    HINTERNET handle = m_handle;
     m_handle = nullptr;
     return handle;
 }
