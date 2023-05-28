@@ -3,6 +3,8 @@
 #include "WinHttpRequest.h"
 
 #include <fstream>
+#include <vector>
+#include <format>
 
 class TestGetRequest : public WinHttpRequest<TestGetRequest>
 {
@@ -137,7 +139,7 @@ public:
                     break;
             }
 
-            printf("Error: %d, result: %s\n", pAR->dwError, result.c_str());
+            //printf("Error: %d, result: %s\n", pAR->dwError, result.c_str());
 
             return E_FAIL;
         }
@@ -155,7 +157,7 @@ public:
         return S_OK;
     }
 
-    bool WaitResult()
+    bool WaitResult() const
     {
         if (WAIT_OBJECT_0 != WaitForSingleObject(m_waitEvent, INFINITE))
             return false;
@@ -165,6 +167,22 @@ public:
 
 private:
     std::fstream m_stream;
+};
+
+typedef struct Request
+{
+    WinHttpConnection connection;
+    TestGetRequest testGetRequest;
+    Request() {}
+    Request(const Request& rhs) = delete;
+    Request(Request&& rhs) noexcept
+    {
+        connection.m_handle = rhs.connection.m_handle;
+        rhs.connection.m_handle = nullptr;
+        testGetRequest.m_handle = rhs.testGetRequest.m_handle;
+        rhs.testGetRequest.m_handle = nullptr;
+    }
+    void operator= (Request& rhs) = delete;
 };
 
 TEST(TestRequest, TestGetSuccessfully)
@@ -184,6 +202,64 @@ TEST(TestRequest, TestGetSuccessfully)
     EXPECT_TRUE(S_OK == res);
     auto success = testGetRequest.WaitResult();
     EXPECT_TRUE(success);
+}
+
+TEST(TestRequest, TestMoreGet)
+{
+    WinHttpSession session;
+    WinHttpConnection connection1;
+    WinHttpConnection connection2;
+    TestGetRequest testGetRequest1;
+    TestGetRequest testGetRequest2;
+
+    HRESULT res = E_FAIL;
+    res = session.Initialize();
+    ASSERT_EQ(S_OK, res);
+    res = connection1.Initialize(L"github.com", INTERNET_DEFAULT_HTTPS_PORT, session);
+    EXPECT_TRUE(S_OK == res);
+    res = testGetRequest1.Initialize(L"FarGroup/FarManager", L"test1.html", connection1);
+    EXPECT_TRUE(S_OK == res);
+    res = testGetRequest1.SendRequest(nullptr, 0, nullptr, 0, 0);
+    EXPECT_TRUE(S_OK == res);
+
+    res = connection2.Initialize(L"learn.microsoft.com", INTERNET_DEFAULT_HTTPS_PORT, session);
+    EXPECT_TRUE(S_OK == res);
+    res = testGetRequest2.Initialize(nullptr, L"test2.html", connection2);
+    EXPECT_TRUE(S_OK == res);
+    res = testGetRequest2.SendRequest(nullptr, 0, nullptr, 0, 0);
+    EXPECT_TRUE(S_OK == res);
+
+    auto success = testGetRequest1.WaitResult();
+    EXPECT_TRUE(success);
+    success = testGetRequest2.WaitResult();
+    EXPECT_TRUE(success);
+}
+
+TEST(TestRequest, TestBatchGet)
+{
+    const std::vector<std::wstring> urls = { L"microsoft/vscode", L"microsoft/TypeScript",
+        L"microsoft/PowerToys", L"microsoft/terminal", L"microsoft/semantic-kernel"
+    };
+
+    WinHttpSession session;
+    HRESULT res = E_FAIL;
+    res = session.Initialize();
+    ASSERT_EQ(S_OK, res);
+    std::vector<Request> requests(urls.size());
+    for (size_t i = 0; i < urls.size(); i++)
+    {
+        auto& request = requests[i];
+        request.connection.Initialize(L"github.com", INTERNET_DEFAULT_HTTPS_PORT, session);
+        request.testGetRequest.Initialize(urls[i].c_str(), std::format(L"test_{}.html", i).c_str(), request.connection);
+        res = request.testGetRequest.SendRequest(nullptr, 0, nullptr, 0, 0);
+        EXPECT_TRUE(S_OK == res);
+    }
+
+    for (const auto& request : requests)
+    {
+        auto success = request.testGetRequest.WaitResult();
+        EXPECT_TRUE(success);
+    }
 }
 
 TEST(TestRequest, TestGetError)
