@@ -2,6 +2,8 @@
 
 #include "WinHttpConnection.h"
 
+#include <vector>
+
 template <typename T>
 class WinHttpRequest : public WinHttpHandle
 {
