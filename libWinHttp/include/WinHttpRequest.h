@@ -34,7 +34,7 @@ public:
     {
         T* pT = static_cast<T*>(this);
 
-        if (!::WinHttpSendRequest(m_handle, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, reinterpret_cast<DWORD_PTR>(pT)))
+        if (!::WinHttpSendRequest(m_handle, headers, headersLength, const_cast<LPVOID>(optional), optionalLength, totalLength, reinterpret_cast<DWORD_PTR>(pT)))
         {
             return HRESULT_FROM_WIN32(::GetLastError());
         }
