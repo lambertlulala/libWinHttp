@@ -6,15 +6,10 @@ template <typename T>
 class WinHttpRequest : public WinHttpHandle
 {
 public:
-    virtual HRESULT Initialize(PCWSTR path, __in_opt PCWSTR verb, const WinHttpConnection& connection)
+    virtual HRESULT Initialize(PCWSTR path, PCWSTR verb, const WinHttpConnection& connection, size_t bufferSize = 32 * 1024)
     {
-        HINTERNET request = ::WinHttpOpenRequest(connection.m_handle,
-            verb,
-            path,
-            nullptr,
-            WINHTTP_NO_REFERER,
-            WINHTTP_DEFAULT_ACCEPT_TYPES,
-            WINHTTP_FLAG_SECURE);
+        HINTERNET request = ::WinHttpOpenRequest(connection.m_handle, verb, path, nullptr,
+            WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
         if (!Attach(request))
         {
             return HRESULT_FROM_WIN32(::GetLastError());
@@ -25,12 +20,12 @@ public:
             return HRESULT_FROM_WIN32(::GetLastError());
         }
 
-        m_buffer.assign(32 * 1024, 0);
+        m_buffer.assign(bufferSize, 0);
 
         return S_OK;
     }
 
-    virtual HRESULT SendRequest(__in_opt PCWSTR headers, DWORD headersLength, __in_opt const void* optional, DWORD optionalLength, DWORD totalLength)
+    virtual HRESULT SendRequest(PCWSTR headers, DWORD headersLength, const void* optional, DWORD optionalLength, DWORD totalLength)
     {
         T* pT = static_cast<T*>(this);
 
