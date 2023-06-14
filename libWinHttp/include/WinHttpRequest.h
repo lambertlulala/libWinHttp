@@ -3,15 +3,19 @@
 #include "WinHttpConnection.h"
 
 #include <vector>
+#include <string>
 
 template <typename T>
 class WinHttpRequest : public WinHttpHandle
 {
 public:
-    virtual HRESULT Initialize(PCWSTR path, PCWSTR verb, const WinHttpConnection& connection, size_t bufferSize = 32 * 1024)
+    virtual HRESULT Initialize(LPCWSTR path, LPCWSTR verb, const WinHttpConnection& connection,
+        LPCWSTR version = nullptr, LPCWSTR referrer = WINHTTP_NO_REFERER,
+        LPCWSTR *acceptTypes = WINHTTP_DEFAULT_ACCEPT_TYPES, DWORD flags = WINHTTP_FLAG_SECURE,
+        size_t bufferSize = 32 * 1024)
     {
         HINTERNET request = ::WinHttpOpenRequest(connection.m_handle, verb, path, nullptr,
-            WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE);
+            referrer, acceptTypes, flags);
         if (!Attach(request))
         {
             return HRESULT_FROM_WIN32(::GetLastError());

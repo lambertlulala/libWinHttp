@@ -1,12 +1,9 @@
 #include "WinHttpSession.h"
 
-HRESULT WinHttpSession::Initialize(const std::wstring &agent)
+HRESULT WinHttpSession::Initialize(const std::wstring& agent, DWORD accessType,
+    LPCWSTR proxy, LPCWSTR proxyBypass, DWORD flags)
 {
-    if (!Attach(::WinHttpOpen(agent.c_str(),
-        WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-        WINHTTP_NO_PROXY_NAME,
-        WINHTTP_NO_PROXY_BYPASS,
-        WINHTTP_FLAG_ASYNC)))
+    if (!Attach(::WinHttpOpen(agent.c_str(), accessType, proxy, proxyBypass, flags)))
     {
         return HRESULT_FROM_WIN32(::GetLastError());
     }

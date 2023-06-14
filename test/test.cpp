@@ -26,11 +26,11 @@ public:
         }
     }
 
-    virtual HRESULT Initialize(PCWSTR source, const std::wstring& destination, const WinHttpConnection& connection)
+    virtual HRESULT Initialize(PCWSTR source, const std::wstring& destination, const WinHttpConnection& connection, DWORD flags = WINHTTP_FLAG_SECURE)
     {
         m_stream.open(destination, std::ios_base::out);
 
-        return WinHttpRequest<TestGetRequest>::Initialize(source, 0, connection);
+        return WinHttpRequest<TestGetRequest>::Initialize(source, 0, connection, nullptr, nullptr, nullptr, flags);
     }
 
     HRESULT OnReadComplete(const void* buffer, DWORD bytesRead)
@@ -279,4 +279,23 @@ TEST(TestRequest, TestGetError)
     EXPECT_TRUE(S_OK == res);
     auto success = testGetRequest.WaitResult();
     EXPECT_FALSE(success);
+}
+
+TEST(TestRequest, TestGetRequestHttpWithoutSecurity)
+{
+    WinHttpSession session;
+    WinHttpConnection connection;
+    TestGetRequest testGetRequest;
+
+    HRESULT res = E_FAIL;
+    res = session.Initialize();
+    ASSERT_EQ(S_OK, res);
+    res = connection.Initialize(L"www.bing.com", INTERNET_DEFAULT_HTTP_PORT, session);
+    EXPECT_TRUE(S_OK == res);
+    res = testGetRequest.Initialize(nullptr, L"test_bing.html", connection, 0);
+    EXPECT_TRUE(S_OK == res);
+    res = testGetRequest.SendRequest(nullptr, 0, nullptr, 0, 0);
+    EXPECT_TRUE(S_OK == res);
+    auto success = testGetRequest.WaitResult();
+    EXPECT_TRUE(success);
 }
