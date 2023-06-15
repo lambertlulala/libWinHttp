@@ -33,6 +33,12 @@ public:
         return WinHttpRequest<TestGetRequest>::Initialize(source, 0, connection, nullptr, nullptr, nullptr, flags);
     }
 
+    void Cleanup()
+    {
+        WinHttpSetStatusCallback(m_handle, nullptr, 0, 0);
+        Close();
+    }
+
     HRESULT OnReadComplete(const void* buffer, DWORD bytesRead)
     {
         m_stream.write(static_cast<const char*>(buffer), bytesRead);
@@ -42,7 +48,8 @@ public:
     void OnResponseComplete(HRESULT result)
     {
         m_stream.close();
-        Close();
+        Cleanup();
+        SetEvent(m_waitEvent);
         m_result = S_OK == result;
     }
 
@@ -74,11 +81,6 @@ public:
                 return HRESULT_FROM_WIN32(::GetLastError());
             }
 
-            if (HTTP_STATUS_OK != statusCode)
-            {
-                return E_FAIL;
-            }
-
             if (!::WinHttpReadData(m_handle,
                 m_buffer.data(),
                 m_buffer.size(),
@@ -102,7 +104,9 @@ public:
                     m_buffer.size(),
                     nullptr)) // async result
                 {
-                    return HRESULT_FROM_WIN32(::GetLastError());
+                    auto result = HRESULT_FROM_WIN32(::GetLastError());
+                    SetEvent(m_waitEvent);
+                    return result;
                 }
             }
             else
@@ -115,38 +119,35 @@ public:
 
         case WINHTTP_CALLBACK_STATUS_REQUEST_ERROR:
         {
-            auto pAR = static_cast<WINHTTP_ASYNC_RESULT*>(const_cast<void *>(info));
+            auto pAR = static_cast<WINHTTP_ASYNC_RESULT*>(const_cast<void*>(info));
             std::string result;
             switch (pAR->dwResult)
             {
-                case API_RECEIVE_RESPONSE:
-                    result = "API_RECEIVE_RESPONSE";
-                    break;
-                case API_QUERY_DATA_AVAILABLE:
-                    result = "API_QUERY_DATA_AVAILABLE";
-                    break;
-                case API_READ_DATA:
-                    result = "API_READ_DATA";
-                    break;
-                case API_WRITE_DATA:
-                    result = "API_WRITE_DATA";
-                    break;
-                case API_SEND_REQUEST:
-                    result = "API_SEND_REQUEST";
-                    break;
-                default:
-                    result = "Unknown failure";
-                    break;
+            case API_RECEIVE_RESPONSE:
+                result = "API_RECEIVE_RESPONSE";
+                break;
+            case API_QUERY_DATA_AVAILABLE:
+                result = "API_QUERY_DATA_AVAILABLE";
+                break;
+            case API_READ_DATA:
+                result = "API_READ_DATA";
+                break;
+            case API_WRITE_DATA:
+                result = "API_WRITE_DATA";
+                break;
+            case API_SEND_REQUEST:
+                result = "API_SEND_REQUEST";
+                break;
+            default:
+                result = "Unknown failure";
+                break;
             }
-
-            //printf("Error: %d, result: %s\n", pAR->dwError, result.c_str());
 
             return E_FAIL;
         }
 
         case WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING:
         {
-            SetEvent(m_waitEvent);
             break;
         }
 
